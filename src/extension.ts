@@ -1,6 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { Block, GlobalStateStorage } from './storage';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -8,7 +9,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	console.log('Congratulations, your extension "blockboard" is now active!');
 
-	const disposable = vscode.commands.registerCommand('blockboard.saveBlock', () => {
+	const storage = new GlobalStateStorage(context.globalState);
+
+	const disposable = vscode.commands.registerCommand('blockboard.saveBlock', async () => {
 
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) {
@@ -20,7 +23,23 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.window.showWarningMessage('Select some code first.');
 			return;
 		}
-		vscode.window.showInformationMessage(`Selected ${text.length} characters`);
+
+		const name = await vscode.window.showInputBox({ prompt: 'Name this Block'});
+		if (!name) {
+			return;
+		}
+
+		const block: Block = {
+			id: Date.now().toString(),
+			name,
+			language: editor.document.languageId,
+			code: text,
+			createdAt: new Date().toISOString()
+		};
+
+		await storage.save(block);
+
+		vscode.window.showInformationMessage(`Saved "${name}" (${(await storage.list()).length} total) `);
 	});
 
 	context.subscriptions.push(disposable);
