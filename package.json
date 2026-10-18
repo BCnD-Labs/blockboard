@@ -21,6 +21,10 @@
       {
         "command": "blockboard.listBlocks",
         "title": "List Blocks"
+      },
+      {
+        "command": "blockboard.deleteBlock",
+        "title": "Delete Block"
       }
     ],
     "configuration": {
