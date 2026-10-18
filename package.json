@@ -36,7 +36,7 @@
 
           "type": "string", 
           "default": "",
-          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockbaord."
+          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockboarrd."
         }
 
       }
