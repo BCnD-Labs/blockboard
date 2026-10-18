@@ -56,7 +56,34 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage(`Saved "${name}" (${(await storage.list()).length} total) `);
 	});
 
+	const listDisposable = vscode.commands.registerCommand('blockboard.listBlocks', async () => {
+		const storage = createStorage(context);
+		const blocks = await storage.list();
+		if (blocks.length === 0) {
+			vscode.window.showInformationMessage('No blocks saved yet.');
+			return;
+		}
+
+		const picked = await vscode.window.showQuickPick(
+			blocks.map(b => ({
+				label: b.name,
+				description: b.language,
+				detail: b.code.replace(/\s+/g, ' ').slice(0, 80),
+				block: b
+			})),
+			{ placeHolder: 'Search your blocks', matchOnDetail: true }
+		);
+		if (!picked) {
+			return;
+		}
+
+		await vscode.env.clipboard.writeText(picked.block.code);
+		vscode.window.showInformationMessage(`Copied "${picked.block.name}"`);
+
+	});
+
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(listDisposable);
 }
 
 // This method is called when your extension is deactivated
