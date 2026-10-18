@@ -1,0 +1,67 @@
+{
+  "name": "blockboard",
+  "displayName": "blockboard",
+  "description": "A visual library for HTML/CSS components and code snippets.",
+  "license":"AGPL-3.0-only",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.140.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "blockboard.saveBlock",
+        "title": "Save Block"
+      }
+    ],
+    "configuration": {
+
+      "title": "Blockboard",
+      "properties": {
+        
+        "blockboard.storageMode": {
+
+          "type": "string",
+          "enum": ["folder", "globalState"],
+          "default": "folder",
+          "description": "Where saved blocks are kept. 'folder' survives uninstalling the extension; 'globalState' lives inside VS Code and may not."
+        },
+
+        "blockboard.libraryPath": {
+
+          "type": "string", 
+          "default": "",
+          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockboarrd."
+        }
+
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.140.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
