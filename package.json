@@ -1,7 +1,8 @@
 {
   "name": "blockboard",
   "displayName": "blockboard",
-  "description": "",
+  "description": "A visual library for HTML/CSS components and code snippets.",
+  "license":"AGPL-3.0-only",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.140.0"
@@ -14,8 +15,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "blockboard.helloWorld",
-        "title": "Hello World"
+        "command": "blockboard.saveBlock",
+        "title": "Save Block"
       }
     ]
   },
