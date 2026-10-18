@@ -1,9 +1,18 @@
 {
   "name": "blockboard",
-  "displayName": "blockboard",
+  "displayName": "Blockboard",
   "description": "A visual library for HTML/CSS components and code snippets.",
   "license":"AGPL-3.0-only",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BCnDNS-Labs/blockboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BCnDNS-Labs/blockboard/issues"
+  },
+  "keywords": ["snippets", "components", "html", "css", "library"],
+  
   "engines": {
     "vscode": "^1.140.0"
   },
