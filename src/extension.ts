@@ -1,7 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { Block, GlobalStateStorage } from './storage';
+import { Block, FolderStorage, GlobalStateStorage } from './storage';
+import * as os from 'os';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -9,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	console.log('Congratulations, your extension "blockboard" is now active!');
 
-	const storage = new GlobalStateStorage(context.globalState);
+	const storage = new FolderStorage(vscode.Uri.joinPath(vscode.Uri.file(os.homedir()), 'Blockboard'));
 
 	const disposable = vscode.commands.registerCommand('blockboard.saveBlock', async () => {
 
