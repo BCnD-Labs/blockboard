@@ -18,7 +18,29 @@
         "command": "blockboard.saveBlock",
         "title": "Save Block"
       }
-    ]
+    ],
+    "configuration": {
+
+      "title": "Blockboard",
+      "properties": {
+        
+        "blockboard.storageMode": {
+
+          "type": "string",
+          "enum": ["folder", "globalState"],
+          "default": "folder",
+          "description": "Where saved blocks are kept. 'folder' survives uninstalling the extension; 'globalState' lives inside VS Code and may not."
+        },
+
+        "blockboard.libraryPath": {
+
+          "type": "string", 
+          "default": "",
+          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockbaord."
+        }
+
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
