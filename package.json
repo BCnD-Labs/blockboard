@@ -17,6 +17,10 @@
       {
         "command": "blockboard.saveBlock",
         "title": "Save Block"
+      },
+      {
+        "command": "blockboard.listBlocks",
+        "title": "List Blocks"
       }
     ],
     "configuration": {
@@ -36,7 +40,7 @@
 
           "type": "string", 
           "default": "",
-          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockboarrd."
+          "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockboard."
         }
 
       }
