@@ -17,6 +17,25 @@ function createStorage(context: vscode.ExtensionContext): BlockStorage {
 
 }
 
+async function pickBlock(storage: BlockStorage, placeHolder: string): Promise<Block | undefined> {
+	const blocks = await storage.list();
+	if (blocks.length === 0) {
+		vscode.window.showInformationMessage('No blocks saved yet.');
+		return undefined;
+	}
+	const picked = await vscode.window.showQuickPick(
+		blocks.map(b => ({
+			label: b.name,
+			description: b.language, 
+			detail: b.code.replace(/\s+/g, ' ').slice(0, 80),
+			block: b
+		})),
+		{ placeHolder, matchOnDetail: true }
+	);
+	return picked?.block;
+}
+
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -56,34 +75,33 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage(`Saved "${name}" (${(await storage.list()).length} total) `);
 	});
 
-	const listDisposable = vscode.commands.registerCommand('blockboard.listBlocks', async () => {
+	const listDisposable = vscode.commands.registerCommand('blockboard.listBlocks', async () =>{
+		const block = await pickBlock(createStorage(context), 'Search your blocks');
+	if (!block) {
+		return;
+	}
+	await vscode.env.clipboard.writeText(block.code);
+	vscode.window.showInformationMessage(`Copied "${block.name}"`);
+
+	});
+
+	const deleteDisposable = vscode.commands.registerCommand('blockboard.deleteBlock', async () => {
 		const storage = createStorage(context);
-		const blocks = await storage.list();
-		if (blocks.length === 0) {
-			vscode.window.showInformationMessage('No blocks saved yet.');
+		const block = await pickBlock(storage, 'Pick a block to delete');
+		if (!block) {
 			return;
 		}
-
-		const picked = await vscode.window.showQuickPick(
-			blocks.map(b => ({
-				label: b.name,
-				description: b.language,
-				detail: b.code.replace(/\s+/g, ' ').slice(0, 80),
-				block: b
-			})),
-			{ placeHolder: 'Search your blocks', matchOnDetail: true }
-		);
-		if (!picked) {
+		const answer = await vscode.window.showWarningMessage(`Delete "${block.name}"?`, { modal: true }, 'Delete');
+		if (answer !== 'Delete') {
 			return;
 		}
-
-		await vscode.env.clipboard.writeText(picked.block.code);
-		vscode.window.showInformationMessage(`Copied "${picked.block.name}"`);
-
+		await storage.delete(block.id);
+		vscode.window.showInformationMessage('Deleted "${block.name}"');
 	});
 
 	context.subscriptions.push(disposable);
 	context.subscriptions.push(listDisposable);
+	context.subscriptions.push(deleteDisposable);
 }
 
 // This method is called when your extension is deactivated
