@@ -3,7 +3,7 @@
   "displayName": "Blockboard",
   "description": "A visual library for HTML/CSS components and code snippets.",
   "license":"AGPL-3.0-only",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/BCnDNS-Labs/blockboard.git"
@@ -68,7 +68,8 @@
         {
           "type": "webview",
           "id": "blockboard.sidebar",
-          "name": "Blocks"
+          "name": "Blocks",
+          "icon": "media/icon.svg"
         }
       ]
     },
