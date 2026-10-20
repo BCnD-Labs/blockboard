@@ -18,7 +18,10 @@ export interface PageOptions {
 function page(body: string, options: PageOptions): string {
 	const csp = [
 		`default-src 'none'`,
-		`style-src ${options.cspSource}`,
+		// Preview iframes (srcdoc) inherit this policy, so inline styles must be allowed for block CSS to apply.
+		`style-src ${options.cspSource} 'unsafe-inline'`,
+		`img-src data:`,
+		`font-src data:`,
 		`script-src 'nonce-${options.nonce}'`
 	].join('; ');
 	return `<!DOCTYPE html>
@@ -36,14 +39,41 @@ ${body}
 </html>`;
 }
 
+export const CODE_CARD_MAX_LINES = 8;
+export const CODE_CARD_MAX_CHARS = 400;
+
+export function truncateCode(code: string, maxLines = CODE_CARD_MAX_LINES, maxChars = CODE_CARD_MAX_CHARS): string {
+	let text = code.length > maxChars ? code.slice(0, maxChars) : code;
+	const lines = text.split('\n');
+	if (lines.length > maxLines) {
+		text = lines.slice(0, maxLines).join('\n');
+	}
+	return text.length < code.length ? `${text}\n…` : text;
+}
+
+function previewFor(block: Block): string {
+	if (block.language === 'html') {
+		// sandbox="" turns every restriction on: no scripts and no same-origin access.
+		return `<iframe class="preview-frame" sandbox="" tabindex="-1" title="Preview of ${escapeHtml(block.name)}" srcdoc="${escapeHtml(composePreviewSrcdoc(block))}"></iframe>`;
+	}
+	if (block.language === 'css') {
+		return '<div class="preview-placeholder" role="img" aria-label="CSS only, nothing to preview">X</div>';
+	}
+	return `<pre class="preview-code">${escapeHtml(truncateCode(block.code))}</pre>`;
+}
+
+function cardFor(block: Block): string {
+	return `\t<li class="card">
+\t\t<div class="preview">${previewFor(block)}</div>
+\t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span><span class="card-language">${escapeHtml(block.language)}</span></div>
+\t</li>`;
+}
+
 export function buildSidebarHtml(blocks: Block[], options: PageOptions): string {
 	if (blocks.length === 0) {
 		return page('<p class="empty">No blocks saved yet. Select some code and run "Blockboard: Save Block".</p>', options);
 	}
-	const items = blocks.map(b =>
-		`\t<li class="block"><span class="block-name">${escapeHtml(b.name)}</span><span class="block-language">${escapeHtml(b.language)}</span></li>`
-	).join('\n');
-	return page(`<ul class="blocks">\n${items}\n</ul>`, options);
+	return page(`<ul class="cards">\n${blocks.map(cardFor).join('\n')}\n</ul>`, options);
 }
 
 export function buildErrorHtml(message: string, options: PageOptions): string {
