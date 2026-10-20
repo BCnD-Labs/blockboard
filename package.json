@@ -37,8 +37,39 @@
         "command": "blockboard.deleteBlock",
         "title": "Delete Block",
         "category": "Blockboard"
+      },
+      {
+        "command": "blockboard.refreshSidebar",
+        "title": "Refresh Sidebar",
+        "category": "Blockboard"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "blockboard",
+          "title": "Blockboard",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "blockboard": [
+        {
+          "type": "webview",
+          "id": "blockboard.sidebar",
+          "name": "Blocks"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "blockboard.refreshSidebar",
+          "when": "false"
+        }
+      ]
+    },
     "configuration": {
 
       "title": "Blockboard",

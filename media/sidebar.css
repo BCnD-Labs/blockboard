@@ -1,0 +1,37 @@
+body {
+	padding: 8px;
+	font-family: var(--vscode-font-family);
+	color: var(--vscode-foreground);
+}
+
+.empty,
+.error {
+	margin: 8px 0;
+	color: var(--vscode-descriptionForeground);
+}
+
+.blocks {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.block {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+	padding: 6px 8px;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 4px;
+}
+
+.block-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.block-language {
+	color: var(--vscode-descriptionForeground);
+}
