@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Block, BlockStorage, FolderStorage, GlobalStateStorage } from './storage';
 import * as os from 'os';
 import { SidebarProvider } from './sidebar/provider';
-import { copyBlock, deleteBlockWithConfirmation } from './actions';
+import { copyBlock, deleteBlockWithConfirmation, insertBlock, targetEditor } from './actions';
 
 function createStorage(context: vscode.ExtensionContext): BlockStorage {
 
@@ -111,7 +111,20 @@ export function activate(context: vscode.ExtensionContext) {
 		await sidebar.edit(block.id);
 	});
 
+	const insertDisposable = vscode.commands.registerCommand('blockboard.insertBlock', async () => {
+		if (!targetEditor()) {
+			vscode.window.showWarningMessage('Open a file first.');
+			return;
+		}
+		const block = await pickBlock(createStorage(context), 'Pick a block to insert');
+		if (!block) {
+			return;
+		}
+		await insertBlock(block);
+	});
+
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(insertDisposable);
 	context.subscriptions.push(editDisposable);
 	context.subscriptions.push(listDisposable);
 	context.subscriptions.push(deleteDisposable);

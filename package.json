@@ -39,6 +39,11 @@
         "category": "Blockboard"
       },
       {
+        "command": "blockboard.insertBlock",
+        "title": "Insert Block",
+        "category": "Blockboard"
+      },
+      {
         "command": "blockboard.editBlock",
         "title": "Edit Block",
         "category": "Blockboard"

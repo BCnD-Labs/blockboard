@@ -72,7 +72,7 @@ function previewFor(block: Block): string {
 
 function actionButtons(id: string): string {
 	const attr = escapeHtml(id);
-	return ['edit-button|Edit', 'copy-button|Copy', 'delete-button|Delete']
+	return ['edit-button|Edit', 'copy-button|Copy', 'insert-button|Insert', 'delete-button|Delete']
 		.map(item => {
 			const [cls, label] = item.split('|');
 			return `<button type="button" class="${cls}" data-id="${attr}">${label}</button>`;
