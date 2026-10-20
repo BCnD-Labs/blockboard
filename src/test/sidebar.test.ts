@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, PageOptions } from '../sidebar/html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, PageOptions, truncateCode } from '../sidebar/html';
 
 const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css' };
 
@@ -16,13 +16,14 @@ suite('Sidebar html', () => {
 	test('shows an empty state when there are no blocks', () => {
 		const html = buildSidebarHtml([], options);
 		assert.ok(html.includes('No blocks saved yet'));
-		assert.ok(!html.includes('class="blocks"'));
+		assert.ok(!html.includes('class="cards"'));
 	});
 
 	test('lists every block by name and language', () => {
 		const html = buildSidebarHtml([makeBlock({ name: 'One' }), makeBlock({ id: '2', name: 'Two', language: 'css' })], options);
 		assert.ok(html.includes('One') && html.includes('Two'));
 		assert.ok(html.includes('>css<'));
+		assert.strictEqual(html.match(/class="card"/g)?.length, 2);
 	});
 
 	test('escapes block names and languages', () => {
@@ -32,13 +33,57 @@ suite('Sidebar html', () => {
 		assert.ok(html.includes('&lt;script&gt;'));
 	});
 
+	test('html blocks render in a sandboxed iframe with no allow-* permissions', () => {
+		const html = buildSidebarHtml([makeBlock()], options);
+		assert.ok(html.includes('<iframe class="preview-frame" sandbox=""'));
+		assert.ok(!html.includes('allow-scripts') && !html.includes('allow-same-origin'));
+		assert.ok(html.includes('&lt;button&gt;Hi&lt;/button&gt;'));
+	});
+
+	test('the srcdoc attribute cannot be broken out of by block content', () => {
+		const html = buildSidebarHtml([makeBlock({ code: '"><script>alert(1)</script><b x="' })], options);
+		assert.ok(!html.includes('<script>alert'));
+		assert.strictEqual(html.match(/<iframe/g)?.length, 1);
+		assert.ok(html.includes('&quot;&gt;&lt;script&gt;'));
+	});
+
+	test('the srcdoc is composed from code plus css', () => {
+		const html = buildSidebarHtml([makeBlock({ css: 'button { color: red; }' })], options);
+		assert.ok(html.includes('button { color: red; }'));
+	});
+
+	test('css-only blocks show the placeholder X and no iframe', () => {
+		const html = buildSidebarHtml([makeBlock({ language: 'css', code: 'a { color: red; }' })], options);
+		assert.ok(html.includes('class="preview-placeholder"'));
+		assert.ok(!html.includes('<iframe'));
+		assert.ok(!html.includes('a { color: red; }'));
+	});
+
+	test('other languages show an escaped, truncated code card and no iframe', () => {
+		const code = Array.from({ length: 30 }, (_, i) => `line ${i} <b>`).join('\n');
+		const html = buildSidebarHtml([makeBlock({ language: 'python', code })], options);
+		assert.ok(html.includes('class="preview-code"'));
+		assert.ok(!html.includes('<iframe'));
+		assert.ok(html.includes('line 0 &lt;b&gt;'));
+		assert.ok(!html.includes('line 29'));
+		assert.ok(html.includes('>python<'));
+	});
+
+	test('every card has the same structure whatever the language', () => {
+		const html = buildSidebarHtml([makeBlock(), makeBlock({ id: '2', language: 'css' }), makeBlock({ id: '3', language: 'ts' })], options);
+		assert.strictEqual(html.match(/<div class="preview">/g)?.length, 3);
+		assert.strictEqual(html.match(/class="card-info"/g)?.length, 3);
+	});
+
 	test('sets a strict CSP with the nonce and no remote sources', () => {
 		const html = buildSidebarHtml([], options);
 		const csp = /Content-Security-Policy" content="([^"]*)"/.exec(html)?.[1] ?? '';
 		assert.ok(csp.includes(`default-src 'none'`));
 		assert.ok(csp.includes(`script-src 'nonce-abc123'`));
 		assert.ok(!/https?:/.test(csp));
-		assert.ok(!csp.includes('unsafe-'));
+		assert.ok(!csp.includes('unsafe-eval'));
+		const scriptSrc = /script-src ([^;]*)/.exec(csp)?.[1] ?? '';
+		assert.ok(!scriptSrc.includes('unsafe-'));
 	});
 
 	test('escapes error messages', () => {
@@ -95,5 +140,19 @@ suite('Preview srcdoc', () => {
 		const html = composePreviewSrcdoc({ code: '' });
 		assert.ok(html.includes('background: #ffffff'));
 		assert.ok(html.includes('color: #000000'));
+	});
+});
+
+suite('truncateCode', () => {
+	test('leaves short code alone', () => {
+		assert.strictEqual(truncateCode('a\nb'), 'a\nb');
+	});
+
+	test('cuts to the line limit and marks it', () => {
+		assert.strictEqual(truncateCode('1\n2\n3\n4', 2, 100), '1\n2\n…');
+	});
+
+	test('cuts to the character limit and marks it', () => {
+		assert.strictEqual(truncateCode('abcdefghij', 8, 4), 'abcd\n…');
 	});
 });
