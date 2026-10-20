@@ -94,3 +94,86 @@ body {
 	flex: none;
 	color: var(--vscode-descriptionForeground);
 }
+
+.card-actions {
+	padding: 4px 8px;
+	border-top: 1px solid var(--vscode-panel-border);
+}
+
+button {
+	padding: 2px 10px;
+	color: var(--vscode-button-secondaryForeground);
+	background: var(--vscode-button-secondaryBackground);
+	border: 1px solid var(--vscode-button-border, transparent);
+	border-radius: 2px;
+	cursor: pointer;
+}
+
+button[type="submit"] {
+	color: var(--vscode-button-foreground);
+	background: var(--vscode-button-background);
+}
+
+/* Edit modal: covers the sidebar. */
+.modal {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	overflow: auto;
+	background: var(--vscode-sideBar-background);
+}
+
+.modal[hidden],
+.modal [hidden] {
+	display: none;
+}
+
+.modal-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px;
+}
+
+.modal-body h2 {
+	margin: 0;
+	font-size: 1.1em;
+}
+
+.modal-body label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.modal-body input,
+.modal-body textarea {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 4px;
+	color: var(--vscode-input-foreground);
+	background: var(--vscode-input-background);
+	border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+	font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.modal-preview {
+	height: 160px;
+	overflow: hidden;
+	background: #ffffff;
+	border: 1px solid var(--vscode-panel-border);
+}
+
+.modal-frame {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	pointer-events: none;
+	background: #ffffff;
+}
+
+.modal-actions {
+	display: flex;
+	gap: 8px;
+}
