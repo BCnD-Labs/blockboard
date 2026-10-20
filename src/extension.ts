@@ -96,7 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		await storage.delete(block.id);
-		vscode.window.showInformationMessage('Deleted "${block.name}"');
+		vscode.window.showInformationMessage(`Deleted "${block.name}"`);
 	});
 
 	context.subscriptions.push(disposable);
