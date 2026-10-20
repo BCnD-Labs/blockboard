@@ -107,7 +107,16 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage(`Deleted "${block.name}"`);
 	});
 
+	const editDisposable = vscode.commands.registerCommand('blockboard.editBlock', async () => {
+		const block = await pickBlock(createStorage(context), 'Pick a block to edit');
+		if (!block) {
+			return;
+		}
+		await sidebar.edit(block.id);
+	});
+
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(editDisposable);
 	context.subscriptions.push(listDisposable);
 	context.subscriptions.push(deleteDisposable);
 }
