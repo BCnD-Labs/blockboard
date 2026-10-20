@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { Block, BlockStorage, FolderStorage, GlobalStateStorage } from './storage';
 import * as os from 'os';
 import { SidebarProvider } from './sidebar/provider';
+import { copyBlock, deleteBlockWithConfirmation } from './actions';
 
 function createStorage(context: vscode.ExtensionContext): BlockStorage {
 
@@ -87,8 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 	if (!block) {
 		return;
 	}
-	await vscode.env.clipboard.writeText(block.code);
-	vscode.window.showInformationMessage(`Copied "${block.name}"`);
+	await copyBlock(block);
 
 	});
 
@@ -98,13 +98,9 @@ export function activate(context: vscode.ExtensionContext) {
 		if (!block) {
 			return;
 		}
-		const answer = await vscode.window.showWarningMessage(`Delete "${block.name}"?`, { modal: true }, 'Delete');
-		if (answer !== 'Delete') {
-			return;
+		if (await deleteBlockWithConfirmation(storage, block)) {
+			await sidebar.refresh();
 		}
-		await storage.delete(block.id);
-		await sidebar.refresh();
-		vscode.window.showInformationMessage(`Deleted "${block.name}"`);
 	});
 
 	const editDisposable = vscode.commands.registerCommand('blockboard.editBlock', async () => {

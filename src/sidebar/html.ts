@@ -70,11 +70,21 @@ function previewFor(block: Block): string {
 	return `<pre class="preview-code">${escapeHtml(truncateCode(block.code))}</pre>`;
 }
 
+function actionButtons(id: string): string {
+	const attr = escapeHtml(id);
+	return ['edit-button|Edit', 'copy-button|Copy', 'delete-button|Delete']
+		.map(item => {
+			const [cls, label] = item.split('|');
+			return `<button type="button" class="${cls}" data-id="${attr}">${label}</button>`;
+		})
+		.join('');
+}
+
 function cardFor(block: Block): string {
 	return `\t<li class="card">
 \t\t<div class="preview">${previewFor(block)}</div>
 \t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span><span class="card-language">${escapeHtml(block.language)}</span></div>
-\t\t<div class="card-actions"><button type="button" class="edit-button" data-id="${escapeHtml(block.id)}">Edit</button></div>
+\t\t<div class="card-actions">${actionButtons(block.id)}</div>
 \t</li>`;
 }
 
