@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Block, BlockStorage, FolderStorage, GlobalStateStorage } from './storage';
 import * as os from 'os';
+import { SidebarProvider } from './sidebar/provider';
 
 function createStorage(context: vscode.ExtensionContext): BlockStorage {
 
@@ -36,6 +37,17 @@ async function pickBlock(storage: BlockStorage, placeHolder: string): Promise<Bl
 
 export function activate(context: vscode.ExtensionContext) {
 
+	const sidebar = new SidebarProvider(context.extensionUri, () => createStorage(context));
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar),
+		vscode.commands.registerCommand('blockboard.refreshSidebar', () => sidebar.refresh()),
+		vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('blockboard.storageMode') || e.affectsConfiguration('blockboard.libraryPath')) {
+				void sidebar.refresh();
+			}
+		})
+	);
+
 	const disposable = vscode.commands.registerCommand('blockboard.saveBlock', async () => {
 		const storage = createStorage(context);
 
@@ -65,6 +77,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 		await storage.save(block);
 
+		await sidebar.refresh();
+
 		vscode.window.showInformationMessage(`Saved "${name}" (${(await storage.list()).length} total) `);
 	});
 
@@ -89,6 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		await storage.delete(block.id);
+		await sidebar.refresh();
 		vscode.window.showInformationMessage(`Deleted "${block.name}"`);
 	});
 
