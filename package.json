@@ -25,15 +25,18 @@
     "commands": [
       {
         "command": "blockboard.saveBlock",
-        "title": "Save Block"
+        "title": "Save Block",
+        "category": "Blockboard"
       },
       {
         "command": "blockboard.listBlocks",
-        "title": "List Blocks"
+        "title": "List Blocks",
+        "category": "Blockboard"
       },
       {
         "command": "blockboard.deleteBlock",
-        "title": "Delete Block"
+        "title": "Delete Block",
+        "category": "Blockboard"
       }
     ],
     "configuration": {
