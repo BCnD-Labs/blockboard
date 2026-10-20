@@ -8,6 +8,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 	static readonly viewType = 'blockboard.sidebar';
 
 	private view?: vscode.WebviewView;
+	private pageReady = false;
+	private pendingEditId?: string;
 
 	constructor(
 		private extensionUri: vscode.Uri,
@@ -24,6 +26,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 		view.webview.onDidReceiveMessage(message => void this.handleMessage(message));
 		view.onDidDispose(() => {
 			this.view = undefined;
+			this.pageReady = false;
 		});
 		void this.refresh();
 	}
@@ -33,6 +36,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 			return;
 		}
 		const webview = this.view.webview;
+		this.pageReady = false;
 		const options: PageOptions = {
 			cspSource: webview.cspSource,
 			nonce: randomBytes(16).toString('base64'),
@@ -48,8 +52,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+	// Shows the sidebar and opens the edit modal for a block. If the sidebar page is not loaded yet
+	// (for example the view was never opened), the request waits until the page says it is ready.
+	async edit(id: string): Promise<void> {
+		this.pendingEditId = id;
+		await vscode.commands.executeCommand(`${SidebarProvider.viewType}.focus`);
+		await this.sendPendingEdit();
+	}
+
+	private async sendPendingEdit(): Promise<void> {
+		if (!this.view || !this.pageReady || this.pendingEditId === undefined) {
+			return;
+		}
+		const id = this.pendingEditId;
+		this.pendingEditId = undefined;
+		await this.view.webview.postMessage({ type: 'edit', id });
+	}
+
 	private async handleMessage(message: unknown): Promise<void> {
 		switch (messageType(message)) {
+			case 'ready':
+				this.pageReady = true;
+				return this.sendPendingEdit();
 			case 'preview':
 				return this.handlePreview(message);
 			case 'save':

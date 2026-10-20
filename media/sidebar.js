@@ -99,4 +99,7 @@
 			open(message.id);
 		}
 	});
+
+	// Tells the extension this page can receive messages (for example an Edit Block request).
+	vscode.postMessage({ type: 'ready' });
 })();
