@@ -164,6 +164,43 @@ suite('FolderStorage', () => {
 		assert.deepStrictEqual(skipped.sort(), ['broken.json', 'empty.json', 'null.json', 'wrong-shape.json']);
 	});
 
+	test('edits and deletes a block whose file name does not match its id', async () => {
+		const folder = await makeFolder();
+		await vscode.workspace.fs.createDirectory(folder);
+		const block = makeBlock('abc');
+		await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder, 'renamed by hand.json'), Buffer.from(JSON.stringify(block), 'utf8'));
+		const storage = new FolderStorage(folder);
+
+		await storage.update({ ...block, name: 'Edited' });
+		const files = (await vscode.workspace.fs.readDirectory(folder)).map(([name]) => name);
+		assert.deepStrictEqual(files, ['renamed by hand.json']);
+		assert.strictEqual((await storage.list())[0].name, 'Edited');
+
+		await storage.delete('abc');
+		assert.deepStrictEqual(await storage.list(), []);
+	});
+
+	test('does not edit a file named <id>.json that holds a different block', async () => {
+		const folder = await makeFolder();
+		await vscode.workspace.fs.createDirectory(folder);
+		const write = (name: string, block: Block) => vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder, name), Buffer.from(JSON.stringify(block), 'utf8'));
+		await write('a.json', makeBlock('b'));
+		await write('other.json', makeBlock('a'));
+		const storage = new FolderStorage(folder);
+
+		await storage.update({ ...makeBlock('a'), name: 'Edited' });
+		const blocks = await storage.list();
+		assert.strictEqual(blocks.find(b => b.id === 'a')?.name, 'Edited');
+		assert.strictEqual(blocks.find(b => b.id === 'b')?.name, 'Block b');
+	});
+
+	test('delete of a missing block rejects', async () => {
+		const storage = new FolderStorage(await makeFolder());
+		await storage.save(makeBlock('1'));
+		await assert.rejects(storage.delete('missing'));
+		assert.deepStrictEqual(ids(await storage.list()), ['1']);
+	});
+
 	test('lists blocks newest first', async () => {
 		const storage = new FolderStorage(await makeFolder());
 		await storage.save(makeBlock('middle', { createdAt: '2026-02-01T00:00:00.000Z' }));
