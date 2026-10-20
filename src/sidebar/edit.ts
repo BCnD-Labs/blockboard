@@ -58,3 +58,9 @@ export function applyEdit(block: Block, edit: EditRequest): Block {
 	}
 	return next;
 }
+
+// For messages that only name a block (copy, delete). Returns the block id.
+export function parseBlockIdRequest(message: unknown): string | undefined {
+	const id = asRecord(message)?.id;
+	return typeof id === 'string' && id !== '' ? id : undefined;
+}

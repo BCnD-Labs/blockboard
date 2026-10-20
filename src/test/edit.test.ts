@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { applyEdit, messageType, parseEditRequest, parsePreviewRequest } from '../sidebar/edit';
+import { applyEdit, messageType, parseBlockIdRequest, parseEditRequest, parsePreviewRequest } from '../sidebar/edit';
 
 const html: Block = { id: '1', name: 'Old', language: 'html', code: '<p>old</p>', css: 'p { color: red; }', createdAt: '2026-01-01T00:00:00.000Z' };
 const python: Block = { id: '2', name: 'Py', language: 'python', code: 'print(1)', createdAt: '2026-01-01T00:00:00.000Z' };
@@ -25,6 +25,13 @@ suite('Edit requests', () => {
 		assert.deepStrictEqual(parsePreviewRequest({ type: 'preview', requestId: 3, code: 'a', css: 'b' }), { requestId: 3, code: 'a', css: 'b' });
 		assert.strictEqual(parsePreviewRequest({ requestId: '3', code: 'a', css: 'b' }), undefined);
 		assert.strictEqual(parsePreviewRequest(null), undefined);
+	});
+
+	test('parseBlockIdRequest returns the id or nothing', () => {
+		assert.strictEqual(parseBlockIdRequest({ type: 'copy', id: 'abc' }), 'abc');
+		for (const bad of [undefined, null, {}, { id: '' }, { id: 5 }]) {
+			assert.strictEqual(parseBlockIdRequest(bad), undefined);
+		}
 	});
 
 	test('messageType reads the type safely', () => {

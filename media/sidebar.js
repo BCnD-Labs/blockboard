@@ -56,9 +56,17 @@
 	}
 
 	document.addEventListener('click', function (event) {
-		const button = event.target.closest && event.target.closest('.edit-button');
-		if (button) {
-			open(button.dataset.id);
+		const target = event.target.closest && event.target.closest('button[data-id]');
+		if (!target) {
+			return;
+		}
+		if (target.classList.contains('edit-button')) {
+			open(target.dataset.id);
+		} else if (target.classList.contains('copy-button')) {
+			vscode.postMessage({ type: 'copy', id: target.dataset.id });
+		} else if (target.classList.contains('delete-button')) {
+			// The extension asks the user to confirm before anything is deleted.
+			vscode.postMessage({ type: 'delete', id: target.dataset.id });
 		}
 	});
 

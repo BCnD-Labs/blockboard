@@ -164,6 +164,17 @@ suite('Sidebar edit UI markup', () => {
 		assert.ok(html.includes('data-id="a1"') && html.includes('data-id="b2"'));
 	});
 
+	test('every card has Copy and Delete buttons carrying the block id', () => {
+		const html = buildSidebarHtml([makeBlock({ id: 'a1' }), makeBlock({ id: 'b2', language: 'python' })], options);
+		assert.strictEqual(html.match(/class="copy-button" data-id="[^"]+">Copy</g)?.length, 2);
+		assert.strictEqual(html.match(/class="delete-button" data-id="[^"]+">Delete</g)?.length, 2);
+	});
+
+	test('button ids are escaped', () => {
+		const html = buildSidebarHtml([makeBlock({ id: '"><b>' })], options);
+		assert.ok(!html.includes('"><b>'));
+	});
+
 	test('includes the modal with a sandboxed preview iframe', () => {
 		const html = buildSidebarHtml([makeBlock()], options);
 		assert.ok(html.includes('id="edit-modal"'));

@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
-import { BlockStorage } from '../storage';
+import { Block, BlockStorage } from '../storage';
 import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, PageOptions } from './html';
-import { applyEdit, messageType, parseEditRequest, parsePreviewRequest } from './edit';
+import { applyEdit, messageType, parseBlockIdRequest, parseEditRequest, parsePreviewRequest } from './edit';
+import { copyBlock, deleteBlockWithConfirmation } from '../actions';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
 	static readonly viewType = 'blockboard.sidebar';
@@ -78,6 +79,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				return this.handlePreview(message);
 			case 'save':
 				return this.handleSave(message);
+			case 'copy':
+				return this.handleBlockAction(message, block => copyBlock(block));
+			case 'delete':
+				return this.handleBlockAction(message, async block => {
+					if (await deleteBlockWithConfirmation(this.createStorage(), block)) {
+						await this.refresh();
+					}
+				});
+		}
+	}
+
+	private async handleBlockAction(message: unknown, action: (block: Block) => Promise<void>): Promise<void> {
+		const id = parseBlockIdRequest(message);
+		if (id === undefined) {
+			return;
+		}
+		try {
+			const block = (await this.createStorage().list()).find(b => b.id === id);
+			if (!block) {
+				vscode.window.showWarningMessage('This block no longer exists.');
+				await this.refresh();
+				return;
+			}
+			await action(block);
+		} catch (error) {
+			vscode.window.showErrorMessage(`Blockboard: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 
