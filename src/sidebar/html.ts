@@ -9,11 +9,20 @@ export function escapeHtml(text: string): string {
 		.replace(/'/g, '&#39;');
 }
 
+export const TILE_SIZES = ['small', 'medium', 'large'] as const;
+export type TileSize = typeof TILE_SIZES[number];
+
+export function toTileSize(value: unknown): TileSize {
+	return TILE_SIZES.find(size => size === value) ?? 'small';
+}
+
 export interface PageOptions {
 	cspSource: string;
 	nonce: string;
 	styleUri: string;
 	scriptUri: string;
+	codiconUri: string;
+	tileSize: TileSize;
 }
 
 // Block data is put in a JSON script element, which the browser never runs. "<" is escaped so
@@ -28,7 +37,7 @@ function page(body: string, options: PageOptions, withScript = false): string {
 		// Preview iframes (srcdoc) inherit this policy, so inline styles must be allowed for block CSS to apply.
 		`style-src ${options.cspSource} 'unsafe-inline'`,
 		`img-src data:`,
-		`font-src data:`,
+		`font-src ${options.cspSource} data:`,
 		`script-src 'nonce-${options.nonce}'`
 	].join('; ');
 	return `<!DOCTYPE html>
@@ -37,10 +46,11 @@ function page(body: string, options: PageOptions, withScript = false): string {
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Security-Policy" content="${csp}">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="${escapeHtml(options.codiconUri)}">
 	<link rel="stylesheet" href="${escapeHtml(options.styleUri)}">
 	<title>Blockboard</title>
 </head>
-<body>
+<body class="tiles-${options.tileSize}">
 ${body}${withScript ? `
 <script nonce="${options.nonce}" src="${escapeHtml(options.scriptUri)}"></script>` : ''}
 </body>
@@ -70,21 +80,34 @@ function previewFor(block: Block): string {
 	return `<pre class="preview-code">${escapeHtml(truncateCode(block.code))}</pre>`;
 }
 
-function actionButtons(id: string): string {
-	const attr = escapeHtml(id);
-	return ['edit-button|Edit', 'copy-button|Copy', 'insert-button|Insert', 'delete-button|Delete']
-		.map(item => {
-			const [cls, label] = item.split('|');
-			return `<button type="button" class="${cls}" data-id="${attr}">${label}</button>`;
-		})
+const ACTIONS = [
+	{ cls: 'edit-button', label: 'Edit', icon: 'edit' },
+	{ cls: 'copy-button', label: 'Copy', icon: 'copy' },
+	{ cls: 'insert-button', label: 'Insert', icon: 'insert' },
+	{ cls: 'delete-button', label: 'Delete', icon: 'trash' }
+];
+
+// Icon-only buttons: the title is the tooltip and the aria-label names the block for screen readers.
+function actionButtons(block: Block): string {
+	const id = escapeHtml(block.id);
+	const name = escapeHtml(block.name);
+	return ACTIONS
+		.map(a => `<button type="button" class="${a.cls}" data-id="${id}" title="${a.label}" aria-label="${a.label} ${name}"><span class="codicon codicon-${a.icon}" aria-hidden="true"></span></button>`)
 		.join('');
 }
 
+// HTML is the usual case, so only other languages get a badge.
+function languageBadge(block: Block): string {
+	return block.language === 'html' ? '' : `<span class="card-language">${escapeHtml(block.language)}</span>`;
+}
+
 function cardFor(block: Block): string {
-	return `\t<li class="card">
-\t\t<div class="preview">${previewFor(block)}</div>
-\t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span><span class="card-language">${escapeHtml(block.language)}</span></div>
-\t\t<div class="card-actions">${actionButtons(block.id)}</div>
+	return `\t<li class="card" title="${escapeHtml(block.name)}">
+\t\t<div class="card-thumb">
+\t\t\t<div class="preview">${previewFor(block)}</div>${languageBadge(block)}
+\t\t\t<div class="card-actions">${actionButtons(block)}</div>
+\t\t</div>
+\t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span></div>
 \t</li>`;
 }
 

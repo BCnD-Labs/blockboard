@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { Block, BlockStorage } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, PageOptions } from './html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, PageOptions, toTileSize } from './html';
 import { applyEdit, messageType, parseBlockIdRequest, parseEditRequest, parsePreviewRequest } from './edit';
 import { copyBlock, deleteBlockWithConfirmation, insertBlock } from '../actions';
 
@@ -42,7 +42,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 			cspSource: webview.cspSource,
 			nonce: randomBytes(16).toString('base64'),
 			styleUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'sidebar.css')).toString(),
-			scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'sidebar.js')).toString()
+			scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'sidebar.js')).toString(),
+			codiconUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'codicons', 'codicon.css')).toString(),
+			tileSize: toTileSize(vscode.workspace.getConfiguration('blockboard').get('tileSize'))
 		};
 		try {
 			const blocks = await this.createStorage().list();

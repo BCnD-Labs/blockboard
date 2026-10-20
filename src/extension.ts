@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar),
 		vscode.commands.registerCommand('blockboard.refreshSidebar', () => sidebar.refresh()),
 		vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('blockboard.storageMode') || e.affectsConfiguration('blockboard.libraryPath')) {
+			if (['storageMode', 'libraryPath', 'tileSize'].some(key => e.affectsConfiguration(`blockboard.${key}`))) {
 				void sidebar.refresh();
 			}
 		})
