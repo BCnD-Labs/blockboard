@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, escapeHtml, PageOptions } from '../sidebar/html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, PageOptions } from '../sidebar/html';
 
 const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css' };
 
@@ -44,5 +44,56 @@ suite('Sidebar html', () => {
 	test('escapes error messages', () => {
 		const html = buildErrorHtml('<b>bad</b>', options);
 		assert.ok(html.includes('&lt;b&gt;bad&lt;/b&gt;'));
+	});
+});
+
+suite('Preview srcdoc', () => {
+	const bodyOf = (html: string) => /<body>\n([\s\S]*)\n<\/body>/.exec(html)?.[1] ?? '';
+
+	test('inline-only: keeps the code (with its own <style>) and adds no extra style block', () => {
+		const code = '<style>.b { color: red; }</style><button class="b">Hi</button>';
+		assert.strictEqual(bodyOf(composePreviewSrcdoc({ code })), code);
+	});
+
+	test('inline style attributes are kept as they are', () => {
+		const code = '<button style="color: red">Hi</button>';
+		assert.ok(composePreviewSrcdoc({ code }).includes(code));
+	});
+
+	test('css-only field: the css is added in a style element after the code', () => {
+		const body = bodyOf(composePreviewSrcdoc({ code: '<button>Hi</button>', css: 'button { color: red; }' }));
+		assert.strictEqual(body, '<button>Hi</button>\n<style>button { color: red; }</style>');
+	});
+
+	test('both: inline styles come first and the css field is appended after the code', () => {
+		const code = '<style>.b { color: red; }</style><button class="b">Hi</button>';
+		const body = bodyOf(composePreviewSrcdoc({ code, css: '.b { color: blue; }' }));
+		assert.strictEqual(body, `${code}\n<style>.b { color: blue; }</style>`);
+		assert.ok(body.indexOf('color: red') < body.indexOf('color: blue'));
+	});
+
+	test('an empty or missing css field adds no style element', () => {
+		assert.strictEqual(bodyOf(composePreviewSrcdoc({ code: '<p>x</p>', css: '' })), '<p>x</p>');
+		assert.strictEqual(bodyOf(composePreviewSrcdoc({ code: '<p>x</p>' })), '<p>x</p>');
+	});
+
+	test('a </style> inside the css cannot close the style element early', () => {
+		const html = composePreviewSrcdoc({ code: '<p>x</p>', css: 'a{}</style><img src=x>' });
+		assert.ok(!html.includes('</style><img'));
+		assert.strictEqual(html.match(/<\/style>/g)?.length, 2);
+	});
+
+	test('has a strict CSP: no scripts and no remote resources', () => {
+		const html = composePreviewSrcdoc({ code: '<script>alert(1)</script>' });
+		const csp = /Content-Security-Policy" content="([^"]*)"/.exec(html)?.[1] ?? '';
+		assert.ok(csp.includes(`default-src 'none'`));
+		assert.ok(!csp.includes('script-src'));
+		assert.ok(!/https?:/.test(csp));
+	});
+
+	test('uses a plain white background with black text', () => {
+		const html = composePreviewSrcdoc({ code: '' });
+		assert.ok(html.includes('background: #ffffff'));
+		assert.ok(html.includes('color: #000000'));
 	});
 });
