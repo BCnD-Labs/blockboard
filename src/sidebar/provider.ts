@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import { Block, BlockStorage } from '../storage';
 import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, PageOptions } from './html';
 import { applyEdit, messageType, parseBlockIdRequest, parseEditRequest, parsePreviewRequest } from './edit';
-import { copyBlock, deleteBlockWithConfirmation } from '../actions';
+import { copyBlock, deleteBlockWithConfirmation, insertBlock } from '../actions';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
 	static readonly viewType = 'blockboard.sidebar';
@@ -81,6 +81,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				return this.handleSave(message);
 			case 'copy':
 				return this.handleBlockAction(message, block => copyBlock(block));
+			case 'insert':
+				return this.handleBlockAction(message, async block => void await insertBlock(block));
 			case 'delete':
 				return this.handleBlockAction(message, async block => {
 					if (await deleteBlockWithConfirmation(this.createStorage(), block)) {

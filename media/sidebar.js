@@ -64,6 +64,8 @@
 			open(target.dataset.id);
 		} else if (target.classList.contains('copy-button')) {
 			vscode.postMessage({ type: 'copy', id: target.dataset.id });
+		} else if (target.classList.contains('insert-button')) {
+			vscode.postMessage({ type: 'insert', id: target.dataset.id });
 		} else if (target.classList.contains('delete-button')) {
 			// The extension asks the user to confirm before anything is deleted.
 			vscode.postMessage({ type: 'delete', id: target.dataset.id });

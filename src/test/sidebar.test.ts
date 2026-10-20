@@ -170,6 +170,12 @@ suite('Sidebar edit UI markup', () => {
 		assert.strictEqual(html.match(/class="delete-button" data-id="[^"]+">Delete</g)?.length, 2);
 	});
 
+	test('every card has an Insert button, placed before Delete', () => {
+		const html = buildSidebarHtml([makeBlock({ id: 'a1' }), makeBlock({ id: 'b2', language: 'python' })], options);
+		assert.strictEqual(html.match(/class="insert-button" data-id="[^"]+">Insert</g)?.length, 2);
+		assert.ok(html.indexOf('class="insert-button"') < html.indexOf('class="delete-button"'));
+	});
+
 	test('button ids are escaped', () => {
 		const html = buildSidebarHtml([makeBlock({ id: '"><b>' })], options);
 		assert.ok(!html.includes('"><b>'));
