@@ -49,3 +49,25 @@ export function buildSidebarHtml(blocks: Block[], options: PageOptions): string 
 export function buildErrorHtml(message: string, options: PageOptions): string {
 	return page(`<p class="error">${escapeHtml(message)}</p>`, options);
 }
+
+export const PREVIEW_CSP = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:`;
+
+// Plain high-contrast canvas so previews look the same regardless of the VS Code theme.
+const PREVIEW_BASE_CSS = 'html, body { margin: 0; padding: 8px; background: #ffffff; color: #000000; font-family: sans-serif; }';
+
+export function composePreviewSrcdoc(block: Pick<Block, 'code' | 'css'>): string {
+	// The css field is appended after the code so it can override styles that are inline in the code.
+	// A literal "</style" in the css would end the style element early, so it is broken up.
+	const css = block.css ? `\n<style>${block.css.replace(/<\/style/gi, '<\\/style')}</style>` : '';
+	return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">
+<style>${PREVIEW_BASE_CSS}</style>
+</head>
+<body>
+${block.code}${css}
+</body>
+</html>`;
+}
