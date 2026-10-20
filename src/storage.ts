@@ -45,8 +45,23 @@ export class GlobalStateStorage implements BlockStorage {
 }
 
 
+function isBlock(value: unknown): value is Block {
+    const b = value as Partial<Block> | null;
+    return typeof b === 'object' && b !== null
+        && typeof b.id === 'string' && typeof b.name === 'string'
+        && typeof b.language === 'string' && typeof b.code === 'string';
+}
+
+function timeOf(block: Block): number {
+    const time = Date.parse(block.createdAt);
+    return isNaN(time) ? 0 : time;
+}
+
 export class FolderStorage implements BlockStorage {
-    constructor(private folder: vscode.Uri) {}
+    constructor(
+        private folder: vscode.Uri,
+        private onSkip: (file: string, error: unknown) => void = (file, error) => console.warn(`Blockboard: skipped ${file}`, error)
+    ) {}
 
     private fileFor(id:string): vscode.Uri {
         return vscode.Uri.joinPath(this.folder, `${id}.json`);
@@ -60,10 +75,18 @@ export class FolderStorage implements BlockStorage {
             if (type !== vscode.FileType.File || !name.endsWith('.json')) {
                 continue;
             }
-            const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(this.folder, name));
-            blocks.push(JSON.parse(Buffer.from(bytes).toString('utf8')) as Block);
+            try {
+                const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(this.folder, name));
+                const parsed: unknown = JSON.parse(Buffer.from(bytes).toString('utf8'));
+                if (!isBlock(parsed)) {
+                    throw new Error('Not a valid block file');
+                }
+                blocks.push(parsed);
+            } catch (error) {
+                this.onSkip(name, error);
+            }
         }
-        return blocks;
+        return blocks.sort((a, b) => timeOf(b) - timeOf(a));
     }
 
     async save(block: Block): Promise<void> {

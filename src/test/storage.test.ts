@@ -146,4 +146,38 @@ suite('FolderStorage', () => {
 		await storage.save(makeBlock('1'));
 		assert.deepStrictEqual(ids(await storage.list()), ['1']);
 	});
+
+	test('skips and reports corrupt files instead of failing', async () => {
+		const folder = await makeFolder();
+		await vscode.workspace.fs.createDirectory(folder);
+		const write = (name: string, text: string) => vscode.workspace.fs.writeFile(vscode.Uri.joinPath(folder, name), Buffer.from(text, 'utf8'));
+		await write('broken.json', '{ not json');
+		await write('null.json', 'null');
+		await write('wrong-shape.json', '{"id":1}');
+		await write('empty.json', '');
+
+		const skipped: string[] = [];
+		const storage = new FolderStorage(folder, file => skipped.push(file));
+		await storage.save(makeBlock('good'));
+
+		assert.deepStrictEqual(ids(await storage.list()), ['good']);
+		assert.deepStrictEqual(skipped.sort(), ['broken.json', 'empty.json', 'null.json', 'wrong-shape.json']);
+	});
+
+	test('lists blocks newest first', async () => {
+		const storage = new FolderStorage(await makeFolder());
+		await storage.save(makeBlock('middle', { createdAt: '2026-02-01T00:00:00.000Z' }));
+		await storage.save(makeBlock('newest', { createdAt: '2026-03-01T00:00:00.000Z' }));
+		await storage.save(makeBlock('oldest', { createdAt: '2026-01-01T00:00:00.000Z' }));
+
+		assert.deepStrictEqual((await storage.list()).map(b => b.id), ['newest', 'middle', 'oldest']);
+	});
+
+	test('blocks with a missing or invalid createdAt sort last', async () => {
+		const storage = new FolderStorage(await makeFolder());
+		await storage.save(makeBlock('dated', { createdAt: '2026-01-01T00:00:00.000Z' }));
+		await storage.save(makeBlock('bad', { createdAt: 'not a date' }));
+
+		assert.deepStrictEqual((await storage.list()).map(b => b.id), ['dated', 'bad']);
+	});
 });
