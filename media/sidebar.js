@@ -1,0 +1,102 @@
+(function () {
+	const vscode = acquireVsCodeApi();
+	const byId = id => document.getElementById(id);
+
+	const blocks = new Map(JSON.parse(byId('blocks-data').textContent).map(b => [b.id, b]));
+	const modal = byId('edit-modal');
+	const form = byId('edit-form');
+	const nameInput = byId('edit-name');
+	const codeInput = byId('edit-code');
+	const cssInput = byId('edit-css');
+	const preview = byId('edit-preview');
+	const errorText = byId('edit-error');
+
+	let editing;
+	let requestId = 0;
+	let previewTimer;
+
+	function isHtml() {
+		return editing && editing.language === 'html';
+	}
+
+	function open(id) {
+		const block = blocks.get(id);
+		if (!block) {
+			return;
+		}
+		editing = block;
+		nameInput.value = block.name;
+		codeInput.value = block.code;
+		cssInput.value = block.css;
+		errorText.textContent = '';
+		byId('edit-code-title').textContent = isHtml() ? 'HTML' : 'Code (' + block.language + ')';
+		// Only html blocks have a css field and a live preview.
+		byId('edit-css-label').hidden = !isHtml();
+		byId('edit-preview-box').hidden = !isHtml();
+		preview.srcdoc = '';
+		modal.hidden = false;
+		nameInput.focus();
+		requestPreview();
+	}
+
+	function close() {
+		editing = undefined;
+		modal.hidden = true;
+	}
+
+	function requestPreview() {
+		if (!isHtml()) {
+			return;
+		}
+		clearTimeout(previewTimer);
+		previewTimer = setTimeout(function () {
+			requestId += 1;
+			vscode.postMessage({ type: 'preview', requestId: requestId, code: codeInput.value, css: cssInput.value });
+		}, 150);
+	}
+
+	document.addEventListener('click', function (event) {
+		const button = event.target.closest && event.target.closest('.edit-button');
+		if (button) {
+			open(button.dataset.id);
+		}
+	});
+
+	byId('edit-cancel').addEventListener('click', close);
+	document.addEventListener('keydown', function (event) {
+		if (event.key === 'Escape' && !modal.hidden) {
+			close();
+		}
+	});
+
+	codeInput.addEventListener('input', requestPreview);
+	cssInput.addEventListener('input', requestPreview);
+
+	form.addEventListener('submit', function (event) {
+		event.preventDefault();
+		if (!editing) {
+			return;
+		}
+		if (nameInput.value.trim() === '') {
+			errorText.textContent = 'Name cannot be empty.';
+			nameInput.focus();
+			return;
+		}
+		const message = { type: 'save', id: editing.id, name: nameInput.value, code: codeInput.value };
+		if (isHtml()) {
+			message.css = cssInput.value;
+		}
+		vscode.postMessage(message);
+	});
+
+	window.addEventListener('message', function (event) {
+		const message = event.data;
+		if (message.type === 'previewHtml' && editing && message.requestId === requestId) {
+			preview.srcdoc = message.srcdoc;
+		} else if (message.type === 'error' && editing) {
+			errorText.textContent = message.message;
+		} else if (message.type === 'edit') {
+			open(message.id);
+		}
+	});
+})();

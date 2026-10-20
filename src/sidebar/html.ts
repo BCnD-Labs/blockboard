@@ -13,9 +13,16 @@ export interface PageOptions {
 	cspSource: string;
 	nonce: string;
 	styleUri: string;
+	scriptUri: string;
 }
 
-function page(body: string, options: PageOptions): string {
+// Block data is put in a JSON script element, which the browser never runs. "<" is escaped so
+// the data cannot close the element early.
+export function jsonForScript(value: unknown): string {
+	return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+function page(body: string, options: PageOptions, withScript = false): string {
 	const csp = [
 		`default-src 'none'`,
 		// Preview iframes (srcdoc) inherit this policy, so inline styles must be allowed for block CSS to apply.
@@ -34,7 +41,8 @@ function page(body: string, options: PageOptions): string {
 	<title>Blockboard</title>
 </head>
 <body>
-${body}
+${body}${withScript ? `
+<script nonce="${options.nonce}" src="${escapeHtml(options.scriptUri)}"></script>` : ''}
 </body>
 </html>`;
 }
@@ -66,14 +74,31 @@ function cardFor(block: Block): string {
 	return `\t<li class="card">
 \t\t<div class="preview">${previewFor(block)}</div>
 \t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span><span class="card-language">${escapeHtml(block.language)}</span></div>
+\t\t<div class="card-actions"><button type="button" class="edit-button" data-id="${escapeHtml(block.id)}">Edit</button></div>
 \t</li>`;
 }
+
+const EDIT_MODAL = `<div id="edit-modal" class="modal" hidden>
+	<form id="edit-form" class="modal-body">
+		<h2>Edit block</h2>
+		<label>Name<input id="edit-name" type="text" autocomplete="off"></label>
+		<label id="edit-code-label"><span id="edit-code-title">HTML</span><textarea id="edit-code" rows="6" spellcheck="false"></textarea></label>
+		<label id="edit-css-label">CSS<textarea id="edit-css" rows="6" spellcheck="false"></textarea></label>
+		<div id="edit-preview-box" class="modal-preview"><iframe id="edit-preview" class="modal-frame" sandbox="" tabindex="-1" title="Live preview"></iframe></div>
+		<p id="edit-error" class="error" role="alert"></p>
+		<div class="modal-actions"><button type="submit">Save</button><button type="button" id="edit-cancel">Cancel</button></div>
+	</form>
+</div>`;
 
 export function buildSidebarHtml(blocks: Block[], options: PageOptions): string {
 	if (blocks.length === 0) {
 		return page('<p class="empty">No blocks saved yet. Select some code and run "Blockboard: Save Block".</p>', options);
 	}
-	return page(`<ul class="cards">\n${blocks.map(cardFor).join('\n')}\n</ul>`, options);
+	const data = blocks.map(b => ({ id: b.id, name: b.name, language: b.language, code: b.code, css: b.css ?? '' }));
+	const body = `<ul class="cards">\n${blocks.map(cardFor).join('\n')}\n</ul>
+${EDIT_MODAL}
+<script id="blocks-data" type="application/json">${jsonForScript(data)}</script>`;
+	return page(body, options, true);
 }
 
 export function buildErrorHtml(message: string, options: PageOptions): string {

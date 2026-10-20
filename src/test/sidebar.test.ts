@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, PageOptions, truncateCode } from '../sidebar/html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, jsonForScript, PageOptions, truncateCode } from '../sidebar/html';
 
-const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css' };
+const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css', scriptUri: 'vscode-resource:/sidebar.js' };
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
 	return { id: '1', name: 'Button', language: 'html', code: '<button>Hi</button>', createdAt: '2026-01-01T00:00:00.000Z', ...overrides };
@@ -43,7 +43,7 @@ suite('Sidebar html', () => {
 	test('the srcdoc attribute cannot be broken out of by block content', () => {
 		const html = buildSidebarHtml([makeBlock({ code: '"><script>alert(1)</script><b x="' })], options);
 		assert.ok(!html.includes('<script>alert'));
-		assert.strictEqual(html.match(/<iframe/g)?.length, 1);
+		assert.strictEqual(html.match(/<iframe class="preview-frame"/g)?.length, 1);
 		assert.ok(html.includes('&quot;&gt;&lt;script&gt;'));
 	});
 
@@ -55,17 +55,17 @@ suite('Sidebar html', () => {
 	test('css-only blocks show the placeholder X and no iframe', () => {
 		const html = buildSidebarHtml([makeBlock({ language: 'css', code: 'a { color: red; }' })], options);
 		assert.ok(html.includes('class="preview-placeholder"'));
-		assert.ok(!html.includes('<iframe'));
-		assert.ok(!html.includes('a { color: red; }'));
+		assert.ok(!html.includes('<iframe class="preview-frame"'));
+		assert.ok(!html.includes('class="preview-code"'));
 	});
 
 	test('other languages show an escaped, truncated code card and no iframe', () => {
 		const code = Array.from({ length: 30 }, (_, i) => `line ${i} <b>`).join('\n');
 		const html = buildSidebarHtml([makeBlock({ language: 'python', code })], options);
-		assert.ok(html.includes('class="preview-code"'));
-		assert.ok(!html.includes('<iframe'));
-		assert.ok(html.includes('line 0 &lt;b&gt;'));
-		assert.ok(!html.includes('line 29'));
+		assert.ok(!html.includes('<iframe class="preview-frame"'));
+		const card = /<pre class="preview-code">([\s\S]*?)<\/pre>/.exec(html)?.[1] ?? '';
+		assert.ok(card.includes('line 0 &lt;b&gt;'));
+		assert.ok(!card.includes('line 29'));
 		assert.ok(html.includes('>python<'));
 	});
 
@@ -154,5 +154,48 @@ suite('truncateCode', () => {
 
 	test('cuts to the character limit and marks it', () => {
 		assert.strictEqual(truncateCode('abcdefghij', 8, 4), 'abcd\n…');
+	});
+});
+
+suite('Sidebar edit UI markup', () => {
+	test('every card has an Edit button carrying the block id', () => {
+		const html = buildSidebarHtml([makeBlock({ id: 'a1' }), makeBlock({ id: 'b2', language: 'css' })], options);
+		assert.strictEqual(html.match(/class="edit-button"/g)?.length, 2);
+		assert.ok(html.includes('data-id="a1"') && html.includes('data-id="b2"'));
+	});
+
+	test('includes the modal with a sandboxed preview iframe', () => {
+		const html = buildSidebarHtml([makeBlock()], options);
+		assert.ok(html.includes('id="edit-modal"'));
+		assert.ok(/<iframe id="edit-preview"[^>]*sandbox=""/.test(html));
+		assert.ok(!html.includes('allow-scripts') && !html.includes('allow-same-origin'));
+	});
+
+	test('loads the sidebar script only with the nonce, and only when there are blocks', () => {
+		const withBlocks = buildSidebarHtml([makeBlock()], options);
+		assert.ok(withBlocks.includes('<script nonce="abc123" src="vscode-resource:/sidebar.js"></script>'));
+		assert.strictEqual(withBlocks.match(/<script/g)?.length, 2);
+		const empty = buildSidebarHtml([], options);
+		assert.ok(!empty.includes('<script'));
+	});
+
+	test('block data is embedded as inert JSON that cannot close its script element', () => {
+		const html = buildSidebarHtml([makeBlock({ code: '</script><script>alert(1)</script>' })], options);
+		assert.ok(html.includes('<script id="blocks-data" type="application/json">'));
+		assert.ok(!html.includes('</script><script>alert'));
+		const json = /<script id="blocks-data" type="application\/json">([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '';
+		assert.strictEqual(JSON.parse(json)[0].code, '</script><script>alert(1)</script>');
+	});
+
+	test('jsonForScript round-trips and escapes <', () => {
+		const value = { a: '<b>', c: 1 };
+		assert.ok(!jsonForScript(value).includes('<'));
+		assert.deepStrictEqual(JSON.parse(jsonForScript(value)), value);
+	});
+
+	test('the data includes css, defaulting to an empty string', () => {
+		const html = buildSidebarHtml([makeBlock(), makeBlock({ id: '2', css: 'a{}' })], options);
+		const json = /<script id="blocks-data" type="application\/json">([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '';
+		assert.deepStrictEqual(JSON.parse(json).map((b: { css: string }) => b.css), ['', 'a{}']);
 	});
 });
