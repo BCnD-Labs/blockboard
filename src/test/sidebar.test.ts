@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, jsonForScript, PageOptions, truncateCode } from '../sidebar/html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, jsonForScript, PageOptions, toTileSize, truncateCode } from '../sidebar/html';
 
-const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css', scriptUri: 'vscode-resource:/sidebar.js' };
+const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css', scriptUri: 'vscode-resource:/sidebar.js', codiconUri: 'vscode-resource:/codicon.css', tileSize: 'small' };
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
 	return { id: '1', name: 'Button', language: 'html', code: '<button>Hi</button>', createdAt: '2026-01-01T00:00:00.000Z', ...overrides };
@@ -19,11 +19,30 @@ suite('Sidebar html', () => {
 		assert.ok(!html.includes('class="cards"'));
 	});
 
-	test('lists every block by name and language', () => {
+	test('lists every block by name, with a language badge only for non-html blocks', () => {
 		const html = buildSidebarHtml([makeBlock({ name: 'One' }), makeBlock({ id: '2', name: 'Two', language: 'css' })], options);
 		assert.ok(html.includes('One') && html.includes('Two'));
-		assert.ok(html.includes('>css<'));
+		assert.ok(html.includes('<span class="card-language">css</span>'));
+		assert.ok(!html.includes('>html<'));
 		assert.strictEqual(html.match(/class="card"/g)?.length, 2);
+	});
+
+	test('the body carries the tile size class', () => {
+		assert.ok(buildSidebarHtml([makeBlock()], options).includes('<body class="tiles-small">'));
+		assert.ok(buildSidebarHtml([makeBlock()], { ...options, tileSize: 'large' }).includes('<body class="tiles-large">'));
+	});
+
+	test('toTileSize accepts the known sizes and falls back to small', () => {
+		assert.strictEqual(toTileSize('medium'), 'medium');
+		assert.strictEqual(toTileSize('huge'), 'small');
+		assert.strictEqual(toTileSize(undefined), 'small');
+	});
+
+	test('loads the codicon stylesheet and allows fonts from the extension', () => {
+		const html = buildSidebarHtml([makeBlock()], options);
+		assert.ok(html.includes('<link rel="stylesheet" href="vscode-resource:/codicon.css">'));
+		const csp = /Content-Security-Policy" content="([^"]*)"/.exec(html)?.[1] ?? '';
+		assert.ok(csp.includes('font-src vscode-resource: data:'));
 	});
 
 	test('escapes block names and languages', () => {
@@ -66,7 +85,7 @@ suite('Sidebar html', () => {
 		const card = /<pre class="preview-code">([\s\S]*?)<\/pre>/.exec(html)?.[1] ?? '';
 		assert.ok(card.includes('line 0 &lt;b&gt;'));
 		assert.ok(!card.includes('line 29'));
-		assert.ok(html.includes('>python<'));
+		assert.ok(html.includes('<span class="card-language">python</span>'));
 	});
 
 	test('every card has the same structure whatever the language', () => {
@@ -166,14 +185,21 @@ suite('Sidebar edit UI markup', () => {
 
 	test('every card has Copy and Delete buttons carrying the block id', () => {
 		const html = buildSidebarHtml([makeBlock({ id: 'a1' }), makeBlock({ id: 'b2', language: 'python' })], options);
-		assert.strictEqual(html.match(/class="copy-button" data-id="[^"]+">Copy</g)?.length, 2);
-		assert.strictEqual(html.match(/class="delete-button" data-id="[^"]+">Delete</g)?.length, 2);
+		assert.strictEqual(html.match(/class="copy-button" data-id="[^"]+" title="Copy"/g)?.length, 2);
+		assert.strictEqual(html.match(/class="delete-button" data-id="[^"]+" title="Delete"/g)?.length, 2);
 	});
 
 	test('every card has an Insert button, placed before Delete', () => {
 		const html = buildSidebarHtml([makeBlock({ id: 'a1' }), makeBlock({ id: 'b2', language: 'python' })], options);
-		assert.strictEqual(html.match(/class="insert-button" data-id="[^"]+">Insert</g)?.length, 2);
+		assert.strictEqual(html.match(/class="insert-button" data-id="[^"]+" title="Insert"/g)?.length, 2);
 		assert.ok(html.indexOf('class="insert-button"') < html.indexOf('class="delete-button"'));
+	});
+
+	test('action buttons are icons with a tooltip and a label naming the block', () => {
+		const html = buildSidebarHtml([makeBlock({ name: 'Hero <b>' })], options);
+		for (const [label, icon] of [['Edit', 'edit'], ['Copy', 'copy'], ['Insert', 'insert'], ['Delete', 'trash']]) {
+			assert.ok(html.includes(`title="${label}" aria-label="${label} Hero &lt;b&gt;"><span class="codicon codicon-${icon}" aria-hidden="true"></span></button>`), label);
+		}
 	});
 
 	test('button ids are escaped', () => {

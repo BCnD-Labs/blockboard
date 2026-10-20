@@ -27,6 +27,7 @@ Open the Command Palette (Cmd+Shift+P) and run:
 
 - `blockboard.storageMode`: `folder` (default) saves each block as a JSON file, `globalState` keeps blocks inside VS Code
 - `blockboard.libraryPath`: the folder used in folder mode (defaults to `~/Blockboard`)
+- `blockboard.tileSize`: `small` (default), `medium` or `large` tiles in the sidebar
 
 ## Status
 
