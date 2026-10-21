@@ -99,6 +99,15 @@
           "type": "string", 
           "default": "",
           "description": "Folder for saved blocks when the mode is 'folder'. Leave empty to use ~/Blockboard."
+        },
+
+        "blockboard.tileSize": {
+
+          "type": "string",
+          "enum": ["small", "medium", "large"],
+          "enumDescriptions": ["About three tiles per row in a default-width sidebar.", "About two tiles per row.", "About one tile per row."],
+          "default": "small",
+          "description": "Size of the block tiles in the sidebar."
         }
 
       }

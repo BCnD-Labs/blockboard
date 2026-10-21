@@ -67,25 +67,51 @@ export class FolderStorage implements BlockStorage {
         return vscode.Uri.joinPath(this.folder, `${id}.json`);
     }
 
-    async list (): Promise<Block[]> {
+    private async readAll(): Promise<{ block: Block; file: vscode.Uri }[]> {
         await vscode.workspace.fs.createDirectory(this.folder);
         const entries = await vscode.workspace.fs.readDirectory(this.folder);
-        const blocks: Block[] = [];
+        const found: { block: Block; file: vscode.Uri }[] = [];
         for (const [name, type] of entries) {
             if (type !== vscode.FileType.File || !name.endsWith('.json')) {
                 continue;
             }
+            const file = vscode.Uri.joinPath(this.folder, name);
             try {
-                const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(this.folder, name));
+                const bytes = await vscode.workspace.fs.readFile(file);
                 const parsed: unknown = JSON.parse(Buffer.from(bytes).toString('utf8'));
                 if (!isBlock(parsed)) {
                     throw new Error('Not a valid block file');
                 }
-                blocks.push(parsed);
+                found.push({ block: parsed, file });
             } catch (error) {
                 this.onSkip(name, error);
             }
         }
+        return found;
+    }
+
+    // Block files are normally named <id>.json, but a file renamed or copied by hand
+    // still lists, so fall back to looking for the file that holds this id.
+    private async findFile(id: string): Promise<vscode.Uri> {
+        const expected = this.fileFor(id);
+        try {
+            const bytes = await vscode.workspace.fs.readFile(expected);
+            const parsed: unknown = JSON.parse(Buffer.from(bytes).toString('utf8'));
+            if (isBlock(parsed) && parsed.id === id) {
+                return expected;
+            }
+        } catch {
+            // Missing or unreadable; search the folder instead.
+        }
+        const match = (await this.readAll()).find(entry => entry.block.id === id);
+        if (!match) {
+            throw new Error(`Block ${id} not found`);
+        }
+        return match.file;
+    }
+
+    async list (): Promise<Block[]> {
+        const blocks = (await this.readAll()).map(entry => entry.block);
         return blocks.sort((a, b) => timeOf(b) - timeOf(a));
     }
 
@@ -96,13 +122,12 @@ export class FolderStorage implements BlockStorage {
     }
 
     async update(block: Block): Promise<void> {
-        const file = this.fileFor(block.id);
-        await vscode.workspace.fs.stat(file);
+        const file = await this.findFile(block.id);
         const updated = { ...block, updatedAt: new Date().toISOString() };
         await vscode.workspace.fs.writeFile(file, Buffer.from(JSON.stringify(updated, null, 2), 'utf8'));
     }
 
     async delete(id: string): Promise<void> {
-        await vscode.workspace.fs.delete(this.fileFor(id));
+        await vscode.workspace.fs.delete(await this.findFile(id));
     }
 }
