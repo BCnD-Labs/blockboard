@@ -24,3 +24,4 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - edit html, css, python, text within sidebar modal
 - inline css in html files render, as well as separate css style and html. 
     - How does that copy though when you have html and css???
+        - **If separate html and css sheets on blocks, it will insert or copy as if html with style tags**
