@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { Block, BlockStorage } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, PageOptions, toTileSize } from './html';
+import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, otherBackground, PageOptions, PreviewBackground, toPreviewBackground, toTileSize } from './html';
 import { applyEdit, messageType, parseBlockIdRequest, parseEditRequest, parsePreviewRequest } from './edit';
 import { copyBlock, deleteBlockWithConfirmation, insertBlock } from '../actions';
 
@@ -32,6 +32,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 		void this.refresh();
 	}
 
+	private previewBackground(): PreviewBackground {
+		return toPreviewBackground(vscode.workspace.getConfiguration('blockboard').get('previewBackground'));
+	}
+
 	async refresh(): Promise<void> {
 		if (!this.view) {
 			return;
@@ -44,7 +48,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 			styleUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'sidebar.css')).toString(),
 			scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'sidebar.js')).toString(),
 			codiconUri: webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'codicons', 'codicon.css')).toString(),
-			tileSize: toTileSize(vscode.workspace.getConfiguration('blockboard').get('tileSize'))
+			tileSize: toTileSize(vscode.workspace.getConfiguration('blockboard').get('tileSize')),
+			previewBackground: this.previewBackground()
 		};
 		try {
 			const blocks = await this.createStorage().list();
@@ -79,6 +84,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				return this.sendPendingEdit();
 			case 'preview':
 				return this.handlePreview(message);
+			case 'togglePreviewBackground':
+				// Changing the setting reloads the sidebar (see onDidChangeConfiguration in extension.ts).
+				return vscode.workspace.getConfiguration('blockboard')
+					.update('previewBackground', otherBackground(this.previewBackground()), vscode.ConfigurationTarget.Global);
 			case 'save':
 				return this.handleSave(message);
 			case 'copy':
@@ -118,7 +127,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 			await this.view?.webview.postMessage({
 				type: 'previewHtml',
 				requestId: request.requestId,
-				srcdoc: composePreviewSrcdoc({ code: request.code, css: request.css })
+				srcdoc: composePreviewSrcdoc({ code: request.code, css: request.css }, this.previewBackground())
 			});
 		}
 	}

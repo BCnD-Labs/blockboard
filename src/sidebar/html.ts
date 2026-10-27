@@ -16,6 +16,17 @@ export function toTileSize(value: unknown): TileSize {
 	return TILE_SIZES.find(size => size === value) ?? 'small';
 }
 
+export const PREVIEW_BACKGROUNDS = ['light', 'dark'] as const;
+export type PreviewBackground = typeof PREVIEW_BACKGROUNDS[number];
+
+export function toPreviewBackground(value: unknown): PreviewBackground {
+	return PREVIEW_BACKGROUNDS.find(background => background === value) ?? 'light';
+}
+
+export function otherBackground(background: PreviewBackground): PreviewBackground {
+	return background === 'light' ? 'dark' : 'light';
+}
+
 export interface PageOptions {
 	cspSource: string;
 	nonce: string;
@@ -23,6 +34,7 @@ export interface PageOptions {
 	scriptUri: string;
 	codiconUri: string;
 	tileSize: TileSize;
+	previewBackground: PreviewBackground;
 }
 
 // Block data is put in a JSON script element, which the browser never runs. "<" is escaped so
@@ -50,7 +62,7 @@ function page(body: string, options: PageOptions, withScript = false): string {
 	<link rel="stylesheet" href="${escapeHtml(options.styleUri)}">
 	<title>Blockboard</title>
 </head>
-<body class="tiles-${options.tileSize}">
+<body class="tiles-${options.tileSize} bg-${options.previewBackground}">
 ${body}${withScript ? `
 <script nonce="${options.nonce}" src="${escapeHtml(options.scriptUri)}"></script>` : ''}
 </body>
@@ -69,10 +81,10 @@ export function truncateCode(code: string, maxLines = CODE_CARD_MAX_LINES, maxCh
 	return text.length < code.length ? `${text}\n…` : text;
 }
 
-function previewFor(block: Block): string {
+function previewFor(block: Block, background: PreviewBackground): string {
 	if (block.language === 'html') {
 		// sandbox="" turns every restriction on: no scripts and no same-origin access.
-		return `<iframe class="preview-frame" sandbox="" tabindex="-1" title="Preview of ${escapeHtml(block.name)}" srcdoc="${escapeHtml(composePreviewSrcdoc(block))}"></iframe>`;
+		return `<iframe class="preview-frame" sandbox="" tabindex="-1" title="Preview of ${escapeHtml(block.name)}" srcdoc="${escapeHtml(composePreviewSrcdoc(block, background))}"></iframe>`;
 	}
 	if (block.language === 'css') {
 		return '<div class="preview-placeholder" role="img" aria-label="CSS only, nothing to preview">X</div>';
@@ -101,10 +113,10 @@ function languageBadge(block: Block): string {
 	return block.language === 'html' ? '' : `<span class="card-language">${escapeHtml(block.language)}</span>`;
 }
 
-function cardFor(block: Block): string {
+function cardFor(block: Block, background: PreviewBackground): string {
 	return `\t<li class="card" title="${escapeHtml(block.name)}">
 \t\t<div class="card-thumb">
-\t\t\t<div class="preview">${previewFor(block)}</div>${languageBadge(block)}
+\t\t\t<div class="preview">${previewFor(block, background)}</div>${languageBadge(block)}
 \t\t\t<div class="card-actions">${actionButtons(block)}</div>
 \t\t</div>
 \t\t<div class="card-info"><span class="card-name">${escapeHtml(block.name)}</span></div>
@@ -128,7 +140,10 @@ export function buildSidebarHtml(blocks: Block[], options: PageOptions): string 
 		return page('<p class="empty">No blocks saved yet. Select some code and run "Blockboard: Save Block".</p>', options);
 	}
 	const data = blocks.map(b => ({ id: b.id, name: b.name, language: b.language, code: b.code, css: b.css ?? '' }));
-	const body = `<ul class="cards">\n${blocks.map(cardFor).join('\n')}\n</ul>
+	const next = otherBackground(options.previewBackground);
+	const toggle = `<div class="toolbar"><button type="button" id="background-toggle" title="Preview on a ${next} background" aria-label="Preview on a ${next} background"><span class="codicon codicon-color-mode" aria-hidden="true"></span></button></div>`;
+	const body = `${toggle}
+<ul class="cards">\n${blocks.map(b => cardFor(b, options.previewBackground)).join('\n')}\n</ul>
 ${EDIT_MODAL}
 <script id="blocks-data" type="application/json">${jsonForScript(data)}</script>`;
 	return page(body, options, true);
@@ -141,9 +156,17 @@ export function buildErrorHtml(message: string, options: PageOptions): string {
 export const PREVIEW_CSP = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:`;
 
 // Plain high-contrast canvas so previews look the same regardless of the VS Code theme.
-const PREVIEW_BASE_CSS = 'html, body { margin: 0; padding: 8px; background: #ffffff; color: #000000; font-family: sans-serif; }';
+const PREVIEW_COLORS: Record<PreviewBackground, { background: string; color: string }> = {
+	light: { background: '#ffffff', color: '#000000' },
+	dark: { background: '#1e1e1e', color: '#e6e6e6' }
+};
 
-export function composePreviewSrcdoc(block: Pick<Block, 'code' | 'css'>): string {
+function previewBaseCss(background: PreviewBackground): string {
+	const { background: bg, color } = PREVIEW_COLORS[background];
+	return `html, body { margin: 0; padding: 8px; background: ${bg}; color: ${color}; font-family: sans-serif; }`;
+}
+
+export function composePreviewSrcdoc(block: Pick<Block, 'code' | 'css'>, background: PreviewBackground = 'light'): string {
 	// The css field is appended after the code so it can override styles that are inline in the code.
 	// A literal "</style" in the css would end the style element early, so it is broken up.
 	const css = block.css ? `\n<style>${block.css.replace(/<\/style/gi, '<\\/style')}</style>` : '';
@@ -152,7 +175,7 @@ export function composePreviewSrcdoc(block: Pick<Block, 'code' | 'css'>): string
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">
-<style>${PREVIEW_BASE_CSS}</style>
+<style>${previewBaseCss(background)}</style>
 </head>
 <body>
 ${block.code}${css}

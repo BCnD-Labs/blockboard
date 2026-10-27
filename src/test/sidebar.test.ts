@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import { Block } from '../storage';
-import { buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, jsonForScript, PageOptions, toTileSize, truncateCode } from '../sidebar/html';
+import { toPreviewBackground, buildErrorHtml, buildSidebarHtml, composePreviewSrcdoc, escapeHtml, jsonForScript, PageOptions, toTileSize, truncateCode } from '../sidebar/html';
 
-const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css', scriptUri: 'vscode-resource:/sidebar.js', codiconUri: 'vscode-resource:/codicon.css', tileSize: 'small' };
+const options: PageOptions = { cspSource: 'vscode-resource:', nonce: 'abc123', styleUri: 'vscode-resource:/sidebar.css', scriptUri: 'vscode-resource:/sidebar.js', codiconUri: 'vscode-resource:/codicon.css', tileSize: 'small', previewBackground: 'light' };
 
 function makeBlock(overrides: Partial<Block> = {}): Block {
 	return { id: '1', name: 'Button', language: 'html', code: '<button>Hi</button>', createdAt: '2026-01-01T00:00:00.000Z', ...overrides };
@@ -28,8 +28,21 @@ suite('Sidebar html', () => {
 	});
 
 	test('the body carries the tile size class', () => {
-		assert.ok(buildSidebarHtml([makeBlock()], options).includes('<body class="tiles-small">'));
-		assert.ok(buildSidebarHtml([makeBlock()], { ...options, tileSize: 'large' }).includes('<body class="tiles-large">'));
+		assert.ok(buildSidebarHtml([makeBlock()], options).includes('<body class="tiles-small bg-light">'));
+		assert.ok(buildSidebarHtml([makeBlock()], { ...options, tileSize: 'large' }).includes('<body class="tiles-large bg-light">'));
+	});
+
+	test('the body carries the preview background and the toggle names the other one', () => {
+		const dark = buildSidebarHtml([makeBlock()], { ...options, previewBackground: 'dark' });
+		assert.ok(dark.includes('bg-dark"'));
+		assert.ok(dark.includes('id="background-toggle" title="Preview on a light background"'));
+		assert.ok(buildSidebarHtml([makeBlock()], options).includes('title="Preview on a dark background"'));
+	});
+
+	test('toPreviewBackground accepts light and dark and falls back to light', () => {
+		assert.strictEqual(toPreviewBackground('dark'), 'dark');
+		assert.strictEqual(toPreviewBackground('purple'), 'light');
+		assert.strictEqual(toPreviewBackground(undefined), 'light');
 	});
 
 	test('toTileSize accepts the known sizes and falls back to small', () => {
@@ -159,6 +172,14 @@ suite('Preview srcdoc', () => {
 		const html = composePreviewSrcdoc({ code: '' });
 		assert.ok(html.includes('background: #ffffff'));
 		assert.ok(html.includes('color: #000000'));
+	});
+});
+
+suite('Preview background', () => {
+	test('dark previews use a dark canvas with light text', () => {
+		const html = composePreviewSrcdoc({ code: '<p>x</p>' }, 'dark');
+		assert.ok(html.includes('background: #1e1e1e'));
+		assert.ok(html.includes('color: #e6e6e6'));
 	});
 });
 
