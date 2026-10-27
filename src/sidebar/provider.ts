@@ -22,6 +22,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 		view.webview.options = {
 			// Scripts run only in this sidebar page. Block previews are sandboxed iframes and cannot run scripts.
 			enableScripts: true,
+			// The empty state links to Save Block. Only that command may be run from page links.
+			enableCommandUris: ['blockboard.saveBlock'],
 			localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')]
 		};
 		view.webview.onDidReceiveMessage(message => void this.handleMessage(message));
