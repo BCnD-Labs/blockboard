@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Block, BlockStorage, FolderStorage, GlobalStateStorage } from './storage';
+import { Block, BlockStorage, FolderStorage, GlobalStateStorage, newBlockId } from './storage';
 import * as os from 'os';
 import { SidebarProvider } from './sidebar/provider';
 import { copyBlock, deleteBlockWithConfirmation, insertBlock, targetEditor } from './actions';
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 
 		const block: Block = {
-			id: Date.now().toString(),
+			id: newBlockId(),
 			name,
 			language: editor.document.languageId,
 			code: text,

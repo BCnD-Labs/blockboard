@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomUUID } from 'crypto';
 
 export interface Block {
     id: string;
@@ -8,6 +9,11 @@ export interface Block {
     createdAt: string;
     css?: string;
     updatedAt?: string;
+}
+
+// Blocks saved before v0.3 have Date.now() ids; those stay valid since an id is any string.
+export function newBlockId(): string {
+    return randomUUID();
 }
 
 export interface BlockStorage {
