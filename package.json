@@ -26,7 +26,8 @@
       {
         "command": "blockboard.saveBlock",
         "title": "Save Block",
-        "category": "Blockboard"
+        "category": "Blockboard",
+        "icon": "$(add)"
       },
       {
         "command": "blockboard.listBlocks",
@@ -51,7 +52,8 @@
       {
         "command": "blockboard.refreshSidebar",
         "title": "Refresh Sidebar",
-        "category": "Blockboard"
+        "category": "Blockboard",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -74,6 +76,18 @@
       ]
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "blockboard.saveBlock",
+          "when": "view == blockboard.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "blockboard.refreshSidebar",
+          "when": "view == blockboard.sidebar",
+          "group": "navigation@2"
+        }
+      ],
       "commandPalette": [
         {
           "command": "blockboard.refreshSidebar",
