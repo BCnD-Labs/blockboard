@@ -152,3 +152,5 @@ vite.config.ts.timestamp-*
 .DS_Store
 SPEC.md 
 ISSUES_DRAFT.md
+# Built by esbuild
+media/editor.js
