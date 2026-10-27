@@ -123,9 +123,18 @@ const EDIT_MODAL = `<div id="edit-modal" class="modal" hidden>
 	</form>
 </div>`;
 
+// The button is a command link (see enableCommandUris in provider.ts), so this page needs no script.
+const EMPTY_STATE = `<div class="empty-state">
+	<h2>No blocks yet</h2>
+	<p>Blocks are snippets of HTML, CSS or any other code that you can save once and reuse.</p>
+	<p>To save one, select some code in an editor, then choose Save Block.</p>
+	<a class="button" href="command:blockboard.saveBlock">Save Block</a>
+	<p class="hint">Tip: you can also run "Blockboard: Save Block" from the Command Palette.</p>
+</div>`;
+
 export function buildSidebarHtml(blocks: Block[], options: PageOptions): string {
 	if (blocks.length === 0) {
-		return page('<p class="empty">No blocks saved yet. Select some code and run "Blockboard: Save Block".</p>', options);
+		return page(EMPTY_STATE, options);
 	}
 	const data = blocks.map(b => ({ id: b.id, name: b.name, language: b.language, code: b.code, css: b.css ?? '' }));
 	const body = `<ul class="cards">\n${blocks.map(cardFor).join('\n')}\n</ul>

@@ -15,7 +15,10 @@ suite('Sidebar html', () => {
 
 	test('shows an empty state when there are no blocks', () => {
 		const html = buildSidebarHtml([], options);
-		assert.ok(html.includes('No blocks saved yet'));
+		assert.ok(html.includes('No blocks yet'));
+		assert.ok(html.includes('select some code'));
+		assert.ok(html.includes('href="command:blockboard.saveBlock"'));
+		assert.ok(!html.includes('<script'));
 		assert.ok(!html.includes('class="cards"'));
 	});
 
