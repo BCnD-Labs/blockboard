@@ -12,6 +12,7 @@
 	const errorText = byId('edit-error');
 
 	let editing;
+	let opener;
 	let requestId = 0;
 	let previewTimer;
 
@@ -25,10 +26,11 @@
 			return;
 		}
 		editing = block;
+		opener = document.activeElement;
 		nameInput.value = block.name;
 		codeInput.value = block.code;
 		cssInput.value = block.css;
-		errorText.textContent = '';
+		showError('');
 		byId('edit-code-title').textContent = isHtml() ? 'HTML' : 'Code (' + block.language + ')';
 		// Only html blocks have a css field and a live preview.
 		byId('edit-css-label').hidden = !isHtml();
@@ -42,6 +44,16 @@
 	function close() {
 		editing = undefined;
 		modal.hidden = true;
+		// Put focus back on the button that opened the modal, if it is still on the page.
+		if (opener && opener.isConnected) {
+			opener.focus();
+		}
+		opener = undefined;
+	}
+
+	function showError(text) {
+		errorText.textContent = text;
+		nameInput.toggleAttribute('aria-invalid', text !== '');
 	}
 
 	function requestPreview() {
@@ -79,6 +91,11 @@
 		}
 	});
 
+	nameInput.addEventListener('input', function () {
+		if (errorText.textContent !== '') {
+			showError('');
+		}
+	});
 	codeInput.addEventListener('input', requestPreview);
 	cssInput.addEventListener('input', requestPreview);
 
@@ -88,7 +105,7 @@
 			return;
 		}
 		if (nameInput.value.trim() === '') {
-			errorText.textContent = 'Name cannot be empty.';
+			showError('Name cannot be empty.');
 			nameInput.focus();
 			return;
 		}
@@ -104,7 +121,7 @@
 		if (message.type === 'previewHtml' && editing && message.requestId === requestId) {
 			preview.srcdoc = message.srcdoc;
 		} else if (message.type === 'error' && editing) {
-			errorText.textContent = message.message;
+			showError(message.message);
 		} else if (message.type === 'edit') {
 			open(message.id);
 		}

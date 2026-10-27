@@ -240,7 +240,31 @@ button[type="submit"] {
 	font-family: var(--vscode-editor-font-family, monospace);
 }
 
+.modal-body input[aria-invalid],
+.modal-body input[aria-invalid]:focus {
+	border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+}
+
+.modal-body textarea {
+	resize: vertical;
+	min-height: 4em;
+}
+
+.modal-body .error {
+	margin: 0;
+	padding: 4px 8px;
+	color: var(--vscode-errorForeground);
+	background: var(--vscode-inputValidation-errorBackground);
+	border: 1px solid var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+	border-radius: 2px;
+}
+
+.modal-body .error:empty {
+	display: none;
+}
+
 .modal-preview {
+	flex: none;
 	height: 160px;
 	overflow: hidden;
 	background: #ffffff;
@@ -259,4 +283,38 @@ button[type="submit"] {
 .modal-actions {
 	display: flex;
 	gap: 8px;
+}
+
+.modal-actions button {
+	flex: 1;
+	padding: 6px 12px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	font-family: var(--vscode-font-family);
+	cursor: pointer;
+}
+
+.modal-actions .primary {
+	color: var(--vscode-button-foreground);
+	background: var(--vscode-button-background);
+}
+
+.modal-actions .primary:hover {
+	background: var(--vscode-button-hoverBackground);
+}
+
+.modal-actions .secondary {
+	color: var(--vscode-button-secondaryForeground);
+	background: var(--vscode-button-secondaryBackground);
+}
+
+.modal-actions .secondary:hover {
+	background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.modal-actions button:focus-visible,
+.modal-body input:focus-visible,
+.modal-body textarea:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 1px;
 }

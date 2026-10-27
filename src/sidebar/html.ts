@@ -111,15 +111,15 @@ function cardFor(block: Block): string {
 \t</li>`;
 }
 
-const EDIT_MODAL = `<div id="edit-modal" class="modal" hidden>
+const EDIT_MODAL = `<div id="edit-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title" hidden>
 	<form id="edit-form" class="modal-body">
-		<h2>Edit block</h2>
-		<label>Name<input id="edit-name" type="text" autocomplete="off"></label>
-		<label id="edit-code-label"><span id="edit-code-title">HTML</span><textarea id="edit-code" rows="6" spellcheck="false"></textarea></label>
-		<label id="edit-css-label">CSS<textarea id="edit-css" rows="6" spellcheck="false"></textarea></label>
+		<h2 id="edit-title">Edit block</h2>
 		<div id="edit-preview-box" class="modal-preview"><iframe id="edit-preview" class="modal-frame" sandbox="" tabindex="-1" title="Live preview"></iframe></div>
+		<label>Name<input id="edit-name" type="text" autocomplete="off" aria-describedby="edit-error"></label>
+		<label id="edit-code-label"><span id="edit-code-title">HTML</span><textarea id="edit-code" class="field-code" rows="8" spellcheck="false"></textarea></label>
+		<label id="edit-css-label">CSS<textarea id="edit-css" class="field-css" rows="5" spellcheck="false"></textarea></label>
 		<p id="edit-error" class="error" role="alert"></p>
-		<div class="modal-actions"><button type="submit">Save</button><button type="button" id="edit-cancel">Cancel</button></div>
+		<div class="modal-actions"><button type="submit" class="primary">Save</button><button type="button" id="edit-cancel" class="secondary">Cancel</button></div>
 	</form>
 </div>`;
 
