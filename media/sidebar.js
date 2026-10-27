@@ -84,6 +84,11 @@
 		}
 	});
 
+	// The extension stores the choice in settings and reloads the page with the new background.
+	byId('background-toggle').addEventListener('click', function () {
+		vscode.postMessage({ type: 'togglePreviewBackground' });
+	});
+
 	byId('edit-cancel').addEventListener('click', close);
 	document.addEventListener('keydown', function (event) {
 		if (event.key === 'Escape' && !modal.hidden) {

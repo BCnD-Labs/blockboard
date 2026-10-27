@@ -131,6 +131,14 @@
           ],
           "default": "small",
           "description": "Size of the block tiles in the sidebar."
+        },
+
+        "blockboard.previewBackground": {
+
+          "type": "string",
+          "enum": ["light", "dark"],
+          "default": "light",
+          "description": "Background behind HTML block previews. You can also switch it with the button above the blocks in the sidebar."
         }
       }
     }

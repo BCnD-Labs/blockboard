@@ -48,6 +48,17 @@ a.button:focus-visible {
 
 /* Tile sizes (blockboard.tileSize). Each preview is laid out at --render px and scaled by
    --scale so it fills a --tile px square. */
+/* Preview background (blockboard.previewBackground). Matches PREVIEW_COLORS in html.ts. */
+body.bg-light {
+	--preview-bg: #ffffff;
+	--preview-fg: #000000;
+}
+
+body.bg-dark {
+	--preview-bg: #1e1e1e;
+	--preview-fg: #e6e6e6;
+}
+
 body.tiles-small {
 	--tile: 88px;
 	--render: 264px;
@@ -64,6 +75,29 @@ body.tiles-large {
 	--tile: 184px;
 	--render: 368px;
 	--scale: 0.5;
+}
+
+.toolbar {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 8px;
+}
+
+.toolbar button {
+	padding: 2px 4px;
+	color: var(--vscode-icon-foreground);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.toolbar button:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.toolbar button:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
 }
 
 .cards {
@@ -100,8 +134,8 @@ body.tiles-large {
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
-	background: #ffffff;
-	color: #000000;
+	background: var(--preview-bg);
+	color: var(--preview-fg);
 }
 
 .preview-frame {
@@ -112,7 +146,7 @@ body.tiles-large {
 	transform: scale(var(--scale));
 	transform-origin: top left;
 	pointer-events: none;
-	background: #ffffff;
+	background: var(--preview-bg);
 }
 
 .preview-placeholder {
@@ -303,7 +337,7 @@ button[type="submit"] {
 	flex: none;
 	height: 160px;
 	overflow: hidden;
-	background: #ffffff;
+	background: var(--preview-bg);
 	border: 1px solid var(--vscode-panel-border);
 }
 
@@ -313,7 +347,7 @@ button[type="submit"] {
 	height: 100%;
 	border: 0;
 	pointer-events: none;
-	background: #ffffff;
+	background: var(--preview-bg);
 }
 
 .modal-actions {
