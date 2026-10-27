@@ -29,4 +29,17 @@ suite('Extension commands', () => {
 		const hidden = contributes.menus.commandPalette.find((m: { command: string }) => m.command === 'blockboard.refreshSidebar');
 		assert.strictEqual(hidden.when, 'false');
 	});
+
+	test('shows Save Block and Refresh as buttons in the sidebar title bar', () => {
+		const extension = vscode.extensions.all.find(e => e.packageJSON.name === 'blockboard');
+		const contributes = extension?.packageJSON.contributes;
+		const inTitleBar = contributes.menus['view/title']
+			.filter((m: { when: string }) => m.when === 'view == blockboard.sidebar')
+			.map((m: { command: string }) => m.command);
+		assert.deepStrictEqual(inTitleBar, ['blockboard.saveBlock', 'blockboard.refreshSidebar']);
+		for (const id of inTitleBar) {
+			const command = contributes.commands.find((c: { command: string }) => c.command === id);
+			assert.ok(command.icon, `${id} has an icon`);
+		}
+	});
 });
