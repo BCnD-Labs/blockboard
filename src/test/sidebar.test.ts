@@ -214,6 +214,8 @@ suite('Sidebar edit UI markup', () => {
 		const html = buildSidebarHtml([makeBlock()], options);
 		assert.ok(html.includes('id="edit-modal"'));
 		assert.ok(/<iframe id="edit-preview"[^>]*sandbox=""/.test(html));
+		assert.ok(html.indexOf('id="edit-preview-box"') < html.indexOf('id="edit-name"'), 'preview comes before the fields');
+		assert.ok(html.includes('role="dialog"') && html.includes('id="edit-error" class="error" role="alert"'));
 		assert.ok(!html.includes('allow-scripts') && !html.includes('allow-same-origin'));
 	});
 
