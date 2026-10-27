@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { Block, BlockStorage, FolderStorage, GlobalStateStorage } from '../storage';
+import { Block, BlockStorage, FolderStorage, GlobalStateStorage, newBlockId } from '../storage';
 
 class MemoryMemento implements vscode.Memento {
 	private data = new Map<string, unknown>();
@@ -105,6 +105,14 @@ function runStorageTests(label: string, makeStorage: () => Promise<BlockStorage>
 		});
 	});
 }
+
+suite('newBlockId', () => {
+	test('returns a UUID and never repeats', () => {
+		const ids = Array.from({ length: 1000 }, newBlockId);
+		assert.ok(ids.every(id => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)));
+		assert.strictEqual(new Set(ids).size, ids.length);
+	});
+});
 
 suite('GlobalStateStorage', () => {
 	runStorageTests('GlobalStateStorage', async () => new GlobalStateStorage(new MemoryMemento()));
